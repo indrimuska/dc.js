@@ -1185,24 +1185,21 @@ dc.coordinateGridMixin = function (_chart) {
     };
 
     function restrictZoom (zoom, extent) {
-        var translateX = zoom.translate()[0],
-            scale      = zoom.scale(),
-            xScale     = zoom.x(),
-            range      = xScale.range(),
-            getDomain  = function () { return range.map(function (r) { return (r - translateX) / scale; }).map(xScale.invert); },
-            domain;
+        var translate = zoom.translate(),
+            scale     = zoom.scale(),
+            xScale    = zoom.x(),
+            range     = xScale.range();
 
-        scale = Math.max(scale, Math.abs((range[0] - range[range.length - 1]) / (xScale(extent[0]) - xScale(extent[1]))));
-        domain = getDomain();
+        translate[0] = Math.min(
+            translate[0] - xScale(extent[0]) + range[0],
+            Math.max(
+                translate[0] - xScale(extent[1]) + range[1],
+                translate[0]
+            )
+        );
 
-        if (domain[0] < extent[0]) {
-            translateX = range[0] - (xScale(extent[0]) * scale);
-        } else {
-            if (domain[domain.length - 1] > extent[1]) {
-                translateX = range[range.length - 1] - (xScale(extent[1]) * scale);
-            }
-        }
-        zoom.x().domain(getDomain());
+        zoom.translate(translate);
+        zoom.scale(Math.max(1, scale));
     }
 
     /**
@@ -1231,6 +1228,19 @@ dc.coordinateGridMixin = function (_chart) {
         }
 
         _zoom.x(_chart.x());
+        zoomHandler();
+    };
+
+    _chart.zoom = function (domain) {
+        var translate = _zoom.translate(),
+            xScale    = _zoom.x(),
+            range     = xScale.range(),
+            scale     = Math.max(_zoom.scale(), Math.abs((range[0] - range[1]) / (xScale(domain[0]) - xScale(domain[1]))));
+
+        translate[0] = translate[0] - xScale(domain[0]) + range[0];
+
+        _zoom.translate(translate);
+        _zoom.scale(scale);
         zoomHandler();
     };
 
